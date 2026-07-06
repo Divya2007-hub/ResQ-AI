@@ -1,6 +1,4 @@
 {
-  "projectSettings": {
-    "framework": "nextjs",
-    "sourceDirectory": "next-app"
-  }
+  "rootDirectory": "next-app",
+  "framework": "nextjs"
 }

@@ -1,4 +1,2 @@
-# System dependencies for deployment
-# Required by fpdf2 for PDF generation
 libjpeg-dev
 zlib1g-dev
