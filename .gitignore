@@ -13,9 +13,6 @@ venv/
 dist/
 build/
 
-# Streamlit
-.streamlit/secrets.toml
-
 # IDE
 .vscode/
 .idea/
