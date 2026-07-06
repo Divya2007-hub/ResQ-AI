@@ -23,7 +23,7 @@ When disaster strikes, ResQ AI's team of specialist AI agents triages, plans, an
 
 ## 🏗️ Architecture
 
-![Live response](screenshots/live-response.png)
+![Architecture](screenshots/architecture.png)
 
 ```
 User Assessment ──► /api/agent-response ──► Gemini 2.0 Flash ──► 5 Agent Briefings
