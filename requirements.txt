@@ -15,6 +15,3 @@ httpx>=0.28.0
 
 # Validation
 pydantic>=2.9.0
-
-# Type stubs
-types-python-dotenv>=1.0.0
