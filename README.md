@@ -2,79 +2,47 @@
 
 **Track:** Agents for Good — Kaggle AI Agents: Intensive Vibe Coding Competition
 
-When disaster strikes, ResQ AI's team of specialist AI agents triages, plans, and coordinates a personalised emergency response in seconds — and shows you exactly how they reasoned to get there.
+When disaster strikes, ResQ AI's team of specialist AI agents triages, plans, and coordinates a personalised emergency response in seconds.
+
+![Landing page](screenshots/landing.png)
 
 ---
 
 ## ✨ Features
 
-- **🧠 Multi-Agent Reasoning Pipeline** — Six specialist agents (Triage, Planner, Safety, Medical, Supply, Communication) coordinate via a Planner that conditionally delegates based on severity and household profile.
-- **🔍 Live Agent Trace** — Watch every agent activate in real time: their reasoning, tool calls, and results. The demo experience *is* the architecture — no black boxes, no spinners.
-- **🛡️ Demoable Security** — Prompt-injection sanitisation is a first-class MCP tool called *before* any agent runs. A dedicated Security Test Mode lets judges fire preloaded attack examples and see the defence live.
-- **📡 Offline Resilience** — An `check_offline_cache` tool provides fallback data when the Gemini API is unreachable, with explicit `source` tagging so the trace shows cache vs. live origin.
-- **📋 Structured Outputs** — Every agent produces typed, schema-validated Pydantic outputs that the Synthesizer merges deterministically — no free-text parsing.
-- **📄 PDF Report** — Download a formatted emergency plan as PDF (fpdf2) with priority badge, safety steps, medical advice, supply checklist, and communication drafts.
-- **📱 Tap-to-Copy** — Communication drafts displayed in copy-ready code blocks.
-- **🔒 Security-First** — Input sanitisation gate, rate limiting (per-hour), in-memory-only state (no persistent storage), env-only secrets, persistent medical/emergency disclaimers.
+- **🧠 5 Specialist AI Personas** — Safety, Medical, Communications, Resources & Supply, and Recovery agents analyse your situation and generate coordinated output in real time.
+- **🔍 Live Streaming** — Watch each agent's reasoning appear character-by-character as they process your assessment.
+- **📋 5-Step Assessment Wizard** — Guided intake with geolocation, disaster type selection (12 types), household details, medical conditions, utilities status, and supplies inventory.
+- **📝 Dynamic Action Plan** — Priority-adjusted plan with immediate actions, medical protocols, communication templates, resource checklist, and recovery roadmap — all generated from your specific assessment.
+- **📡 Offline Resilience** — Offline Backup card with Google Maps embed (or SVG fallback) and "Navigate to Shelter" button using real coordinates.
+- **📱 Print & Share** — Print-ready action plan with `window.print()` support.
+- **🎯 Scroll-Synced Navigation** — Sidebar tracks your position through the action plan sections.
+- **🎉 Celebration on Completion** — Confetti animation when all agents finish.
 
 ---
 
 ## 🏗️ Architecture
 
-```mermaid
-flowchart TB
-    User["User Input"] --> Sanitize["sanitize_input (MCP Tool)"]
-    Sanitize --> Triage["🧠 Triage Agent\nClassifies disaster + severity 1-5\nFlags vulnerable individuals"]
-    Triage --> Planner["🧠 Planner Agent\nConditional routing decision\nLOGS reasoning to trace"]
+![Live response](screenshots/live-response.png)
 
-    Planner --> Safety["🛡️ Safety Agent\nHazard warnings, evacuation\nCalls: get_disaster_checklist"]
-    Planner --> Medical["🏥 Medical Agent\nFirst aid, medication reminders\nCalls: get_first_aid"]
-    Planner --> Supply["📦 Supply Agent\nKit checklist by household\nCalls: emergency_supply_list"]
-    Planner --> Comm["📡 Communication Agent\nSMS, family msg, rescue req\nCalls: generate_emergency_sms\n       generate_family_message"]
-
-    Safety --> Synth["🧩 Synthesizer\nMerges structured outputs\nResolves conflicts\nOrders by priority"]
-    Medical --> Synth
-    Supply --> Synth
-    Comm --> Synth
-
-    Synth --> Trace["📊 Agent Trace Log\nReal-time reasoning panel\nTool calls & results\nFull audit trail"]
-    Trace --> Result["📋 Final Emergency Plan\nPriority badge\nSafety steps\nMedical advice\nSupply checklist\nCommunication drafts\nPDF download"]
-
-    subgraph MCP["MCP Server (Centralized Tools)"]
-        T1["classify_severity"]
-        T2["get_disaster_checklist"]
-        T3["get_first_aid"]
-        T4["emergency_supply_list"]
-        T5["generate_emergency_sms"]
-        T6["generate_family_message"]
-        T7["sanitize_input"]
-        T8["check_offline_cache"]
-    end
-
-    Triage --> T1
-    Safety --> T2
-    Medical --> T3
-    Supply --> T4
-    Comm --> T5
-    Comm --> T6
-    User --> T7
-    All_Agents --> T8
-
-    style User fill:#e3f2fd,stroke:#1565c0
-    style Result fill:#fff3e0,stroke:#e65100
-    style Trace fill:#e8f5e9,stroke:#2e7d32
-    style MCP fill:#f3e5f5,stroke:#7b1fa2
+```
+User Assessment ──► /api/agent-response ──► Gemini 2.0 Flash ──► 5 Agent Briefings
+                                                │
+                                          Fallback Templates
+                                          (if API unreachable)
 ```
 
-### Conditional Routing Logic
+Each agent receives a role-specific system prompt with the full assessment context. The API route runs on the server — your API key never reaches the client.
 
-| Trigger | Routes To |
+### 5 Agent Roles
+
+| Agent | Role |
 |---|---|
-| Severity ≤ 2 + no hazards | Safety only |
-| Severity ≥ 4 OR fire/chemical hazards | All 4 specialist agents |
-| No children/elderly/pets | Supply skips child/elderly/pet items |
-| No medical conditions | Medical runs with default first-aid only |
-| `sanitize_input` flags injection | Pipeline aborted with warning |
+| **Safety** | Disaster-specific first action, evacuation/shelter decision, hazard warnings |
+| **Medical** | Condition-specific protocols, medication management, first aid checklist |
+| **Communications** | Connectivity assessment, SMS-first strategy, family message template |
+| **Resources & Supply** | Inventory audit, critical gap identification, rationing advice |
+| **Recovery** | 5-phase recovery roadmap from 0 hours to 7+ days |
 
 ---
 
@@ -82,44 +50,54 @@ flowchart TB
 
 ```
 resq-ai/
-├── agents/                    # ADK Agent definitions
-│   ├── triage_agent.py        # Severity + hazard classification
-│   ├── planner_agent.py       # Conditional routing decisions
-│   ├── safety_agent.py        # Safety checklists
-│   ├── medical_agent.py       # First aid guidance
-│   ├── supply_agent.py        # Emergency supply lists
-│   ├── communication_agent.py # SMS + family message drafts
-│   ├── synthesizer.py         # Final plan merger
-│   └── pipeline.py            # Orchestrator with trace capture
-├── mcp/                       # MCP Server
-│   ├── server.py              # Tool registry + caller
-│   └── tool_schemas.py        # Pydantic I/O schemas
-├── tools/                     # Tool implementations
-│   ├── severity.py            # classify_severity
-│   ├── checklist.py           # get_disaster_checklist
-│   ├── first_aid.py           # get_first_aid
-│   ├── supplies.py            # emergency_supply_list
-│   ├── messaging.py           # generate_emergency_sms / family_message
-│   ├── security.py            # sanitize_input
-│   └── offline_cache.py       # check_offline_cache
-├── frontend/                  # Streamlit UI screens
-│   ├── landing.py             # Project pitch + start
-│   ├── form.py                # Emergency intake form
-│   ├── trace_view.py          # Live agent trace timeline
-│   ├── results.py             # Final plan display
-│   └── security_demo.py       # Interactive injection test console
-├── utils/                     # Shared utilities
-│   ├── state.py               # Session state management
-│   ├── pdf_export.py          # PDF report generation
-│   └── validators.py          # Form validation + rate limiting
+├── next-app/                    # Next.js application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx                    # Landing page
+│   │   │   ├── assess/page.tsx             # 5-step assessment wizard
+│   │   │   ├── response/[sessionId]/
+│   │   │   │   ├── page.tsx                # Live agent streaming
+│   │   │   │   └── plan/page.tsx           # Dynamic action plan
+│   │   │   ├── resources/page.tsx          # Emergency contacts & guides
+│   │   │   ├── history/page.tsx            # Past sessions
+│   │   │   └── api/agent-response/route.ts # Gemini API + fallback
+│   │   ├── components/
+│   │   │   ├── agents/          # Agent cards, sidebar, status indicators
+│   │   │   ├── assessment/      # Disaster type grid, step wizard
+│   │   │   ├── plan/            # Priority bar, resource checklist
+│   │   │   ├── common/          # Severity badge, inline alert
+│   │   │   ├── layout/          # Navbar, footer
+│   │   │   ├── radar/           # CSS/SVG radar ping animation
+│   │   │   └── ui/              # shadcn/ui primitives
+│   │   ├── lib/
+│   │   │   ├── store.ts         # Zustand state management
+│   │   │   ├── types.ts         # TypeScript interfaces
+│   │   │   └── utils.ts         # Helpers (cn, formatTime, etc.)
+│   │   └── globals.css          # Design system (colors, fonts, animations)
+│   ├── .env.local               # GEMINI_API_KEY
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
+│   ├── package.json
+│   └── vercel.json
 ├── config/
-│   └── settings.py            # Env-var configuration
-├── assets/                    # Static assets (icons, images)
-├── .env.example               # Environment template
-├── app.py                     # Streamlit entry point
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+│   └── settings.py              # Python backend config
+├── screenshots/                 # App screenshots
+├── vercel.json                  # Vercel deployment config
+└── README.md                    # This file
 ```
+
+---
+
+## 🖼️ Screenshots
+
+| Screen | Description |
+|---|---|
+| ![Landing](screenshots/landing.png) | Hero with radar animation, 3-step guide, 5 agent tags, CTA |
+| ![Assessment](screenshots/assessment.png) | Disaster type selection grid (12 types) |
+| ![Live Response](screenshots/live-response.png) | 5 agents streaming in real time with status indicators |
+| ![Action Plan](screenshots/action-plan.png) | Dynamic plan with priority bar, all sections, scroll nav |
+| ![Resources](screenshots/resources.png) | Emergency contacts, downloadable checklists, disaster guides |
+| ![History](screenshots/history.png) | Session list with search and priority filters |
 
 ---
 
@@ -127,101 +105,64 @@ resq-ai/
 
 ### Prerequisites
 
-- Python 3.11+
+- Node.js 18+
 - A Google Gemini API key ([get one here](https://aistudio.google.com/app/apikey))
 
 ### Local Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/resq-ai.git
-cd resq-ai
-
-# Create and activate a virtual environment (recommended)
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS/Linux
-source venv/bin/activate
+# Navigate to the Next.js app
+cd next-app
 
 # Install dependencies
-pip install -r requirements.txt
+npm install
 
 # Configure environment
-cp .env.example .env
-# Edit .env and set your GEMINI_API_KEY
+cp .env.local.example .env.local
+# Edit .env.local and set your GEMINI_API_KEY
+
+# Run development server
+npm run dev
 ```
 
-### Run Locally
+Open http://localhost:3000 in your browser.
+
+### Build for Production
 
 ```bash
-streamlit run app.py
+npm run build
+npm start
 ```
-
-Open http://localhost:8501 in your browser.
 
 ---
 
 ## ☁️ Deployment
 
-### Streamlit Community Cloud
+### Vercel
 
-1. Push the repository to GitHub.
-2. Go to [share.streamlit.io](https://share.streamlit.io) and click **Deploy an app**.
-3. Select the repo, branch, and set `Main file path` to `app.py`.
-4. Add your `GEMINI_API_KEY` as a [Streamlit secret](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management):
-   ```toml
-   # .streamlit/secrets.toml
-   GEMINI_API_KEY = "your-key-here"
-   ```
-5. Click **Deploy**.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Divya2007-hub/ResQ-AI)
 
-### Hugging Face Spaces
+The `vercel.json` at the repo root sets the project to use `next-app/` as the root directory:
 
-1. Create a new Space at [huggingface.co/spaces](https://huggingface.co/spaces).
-2. Choose **Streamlit** as the SDK.
-3. Clone the Space and push the code:
-   ```bash
-   git clone https://huggingface.co/spaces/yourusername/resq-ai
-   cd resq-ai
-   # Copy all project files here
-   git add .
-   git commit -m "Initial commit"
-   git push
-   ```
-4. Add your `GEMINI_API_KEY` in the Space's **Settings → Repository Secrets**.
-5. The Space auto-deploys on push.
+```json
+{
+  "rootDirectory": "next-app",
+  "framework": "nextjs"
+}
+```
 
----
-
-## 🖼️ Screenshots
-
-<!--
-Add screenshots here after deploying:
-
-| Screen | Description |
-|---|---|
-| ![Landing](screenshots/landing.png) | Project pitch and Start button |
-| ![Form](screenshots/form.png) | Emergency intake form with Security Test Mode toggle |
-| ![Security Demo](screenshots/security.png) | Live prompt-injection test console |
-| ![Trace](screenshots/trace.png) | Real-time multi-agent reasoning timeline |
-| ![Results](screenshots/results.png) | Prioritised emergency action plan |
--->
-
-*Screenshots coming soon. Replace these placeholders with actual captures after deployment.*
+Add `GEMINI_API_KEY` as an environment variable in the Vercel dashboard.
 
 ---
 
 ## 🔮 Future Improvements
 
-- **Multi-language support** — Accept input and generate plans in multiple languages.
-- **Real-time weather/seismic API integration** — Pull live hazard data for more accurate severity classification.
-- **Map integration** — Show evacuation routes and nearby shelters on an embedded map.
-- **Voice input** — Speech-to-text for hands-free emergency reporting.
-- **Mobile app** — Standalone mobile build with push notification support.
-- **Persistent user profiles** — Optional saved profiles for faster form filling (opt-in only).
-- **Advanced evaluation** — ADK eval framework datasets for measuring plan quality across scenarios.
-- **A2A protocol** — Interoperability with other emergency response systems via Google's Agent-to-Agent protocol.
+- **Google ADK Multi-Agent Pipeline** — Replace direct Gemini calls with a proper ADK agent orchestration pipeline with conditional routing.
+- **MCP Tool Server** — Register disaster-response tools (first aid, checklists, SMS, sanitization) as MCP tools for agent use.
+- **Security Layer** — Input sanitization, rate limiting, prompt-injection detection.
+- **Database Persistence** — Save sessions to a database so history survives page refresh.
+- **PDF Export** — Server-side PDF generation of the action plan.
+- **Real-time Hazard Data** — Integrate weather/seismic APIs for live hazard assessment.
 
 ---
 
@@ -231,4 +172,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-Built with [Google ADK](https://adk.dev), [Streamlit](https://streamlit.io), and [Gemini](https://deepmind.google/technologies/gemini/) for the Kaggle AI Agents: Intensive Vibe Coding Competition.
+Built with [Next.js](https://nextjs.org), [Tailwind CSS](https://tailwindcss.com), [Gemini](https://deepmind.google/technologies/gemini/), and [Framer Motion](https://framer.com/motion) for the Kaggle AI Agents: Intensive Vibe Coding Competition.
